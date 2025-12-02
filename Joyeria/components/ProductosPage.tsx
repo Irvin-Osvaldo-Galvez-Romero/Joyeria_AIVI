@@ -122,20 +122,27 @@ export default function ProductosPage() {
   const [filterDisponible, setFilterDisponible] = useState<boolean | null>(null)
 
   useEffect(() => {
-    loadProductos()
+    // Llamar loadProductos sin await (está bien, es fire-and-forget)
+    void loadProductos().catch((error) => {
+      console.error('Error en loadProductos:', error)
+    })
     
     // Suscripción en tiempo real
     const subscription = supabase
       .channel('productos-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => {
-        loadProductos()
+        void loadProductos().catch((error) => {
+          console.error('Error en loadProductos (productos changes):', error)
+        })
       })
       .subscribe()
 
-    return () => subscription.unsubscribe()
+    return (): void => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadProductos() {
+  async function loadProductos(): Promise<void> {
     try {
       let query = supabase
         .from('productos')

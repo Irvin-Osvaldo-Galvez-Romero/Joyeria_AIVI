@@ -52,22 +52,31 @@ export default function PagosPlazosPage() {
   const [filterEstado, setFilterEstado] = useState<EstadoVentaPlazo | 'todos'>('todos')
 
   useEffect(() => {
-    loadVentasPlazos()
+    // Llamar loadVentasPlazos sin await (está bien, es fire-and-forget)
+    void loadVentasPlazos().catch((error) => {
+      console.error('Error en loadVentasPlazos:', error)
+    })
     
     const subscription = supabase
       .channel('ventas-plazos-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_plazos' }, () => {
-        loadVentasPlazos()
+        void loadVentasPlazos().catch((error) => {
+          console.error('Error en loadVentasPlazos (ventas_plazos changes):', error)
+        })
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pagos_plazos' }, () => {
-        loadVentasPlazos()
+        void loadVentasPlazos().catch((error) => {
+          console.error('Error en loadVentasPlazos (pagos_plazos changes):', error)
+        })
       })
       .subscribe()
 
-    return () => subscription.unsubscribe()
+    return (): void => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadVentasPlazos() {
+  async function loadVentasPlazos(): Promise<void> {
     try {
       const { data, error } = await supabase
         .from('ventas_plazos')

@@ -37,22 +37,31 @@ export default function ApartadosPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    loadApartados()
+    // Llamar loadApartados sin await (está bien, es fire-and-forget)
+    void loadApartados().catch((error) => {
+      console.error('Error en loadApartados:', error)
+    })
     
     const subscription = supabase
       .channel('apartados-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'apartados' }, () => {
-        loadApartados()
+        void loadApartados().catch((error) => {
+          console.error('Error en loadApartados (apartados changes):', error)
+        })
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => {
-        loadApartados()
+        void loadApartados().catch((error) => {
+          console.error('Error en loadApartados (productos changes):', error)
+        })
       })
       .subscribe()
 
-    return () => subscription.unsubscribe()
+    return (): void => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadApartados() {
+  async function loadApartados(): Promise<void> {
     try {
       const { data, error } = await supabase
         .from('apartados')

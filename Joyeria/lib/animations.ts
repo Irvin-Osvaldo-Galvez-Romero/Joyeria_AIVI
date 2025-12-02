@@ -81,7 +81,7 @@ export function animateFormIn(element: HTMLElement | null) {
     translateX: [-20, 0],
     opacity: [0, 1],
     duration: 500,
-    delay: anime.stagger(50),
+    delay: (el: any, i: number) => i * 50,
     easing: 'easeOutExpo',
   })
 }
@@ -95,7 +95,7 @@ export function animateCounter(element: HTMLElement | null, from: number, to: nu
     value: to,
     duration: 1500,
     easing: 'easeOutExpo',
-    update: function(anim) {
+    update: function(anim: any) {
       element.textContent = Math.floor(anim.animatables[0].target.value).toString()
     },
   })
@@ -121,7 +121,7 @@ export function animatePageIn() {
     translateY: [50, 0],
     opacity: [0, 1],
     duration: 800,
-    delay: anime.stagger(100),
+    delay: (el: any, i: number) => i * 100,
     easing: 'easeOutExpo',
   })
 }

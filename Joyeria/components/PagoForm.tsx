@@ -26,6 +26,7 @@ interface VentaPlazo {
     monto_pagado: number
     estado: string
     fecha_vencimiento: string
+    fecha_pago?: string | null
   }>
 }
 

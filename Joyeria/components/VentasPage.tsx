@@ -13,19 +13,26 @@ export default function VentasPage() {
   const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
-    loadVentas()
+    // Llamar loadVentas sin await (está bien, es fire-and-forget)
+    void loadVentas().catch((error) => {
+      console.error('Error en loadVentas:', error)
+    })
     
     const subscription = supabase
       .channel('ventas-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, () => {
-        loadVentas()
+        void loadVentas().catch((error) => {
+          console.error('Error en loadVentas (ventas changes):', error)
+        })
       })
       .subscribe()
 
-    return () => subscription.unsubscribe()
+    return (): void => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadVentas() {
+  async function loadVentas(): Promise<void> {
     try {
       const { data, error } = await supabase
         .from('ventas')

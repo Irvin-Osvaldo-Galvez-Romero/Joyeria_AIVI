@@ -14,19 +14,33 @@ export default function GastosPage() {
   const [editingGasto, setEditingGasto] = useState<any>(null)
 
   useEffect(() => {
-    loadGastos()
+    let isMounted = true
+    
+    // Llamar loadGastos sin await (está bien, es fire-and-forget)
+    void loadGastos().catch((error) => {
+      if (isMounted) {
+        console.error('Error en loadGastos:', error)
+      }
+    })
     
     const subscription = supabase
       .channel('gastos-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gastos' }, () => {
-        loadGastos()
+        if (isMounted) {
+          void loadGastos().catch((error) => {
+            console.error('Error en loadGastos (gastos changes):', error)
+          })
+        }
       })
       .subscribe()
 
-    return () => subscription.unsubscribe()
+    return (): void => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadGastos() {
+  async function loadGastos(): Promise<void> {
     try {
       const { data, error } = await supabase
         .from('gastos')
@@ -65,7 +79,8 @@ export default function GastosPage() {
   // Agrupar por categoría
   const gastosPorCategoria = gastos.reduce((acc, gasto) => {
     const cat = gasto.categoria || 'Sin categoría'
-    acc[cat] = (acc[cat] || 0) + Number(gasto.monto)
+    const monto = typeof gasto.monto === 'number' ? gasto.monto : Number(gasto.monto) || 0
+    acc[cat] = (acc[cat] || 0) + monto
     return acc
   }, {} as Record<string, number>)
 
@@ -103,12 +118,15 @@ export default function GastosPage() {
           <div>
             <p className="text-gray-600 text-sm mb-3">Gastos por Categoría</p>
             <div className="space-y-2">
-              {Object.entries(gastosPorCategoria).slice(0, 5).map(([categoria, monto]) => (
-                <div key={categoria} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{categoria}:</span>
-                  <span className="font-semibold">{formatCurrency(monto)}</span>
-                </div>
-              ))}
+              {Object.entries(gastosPorCategoria).slice(0, 5).map(([categoria, monto]) => {
+                const montoNum = typeof monto === 'number' ? monto : Number(monto) || 0
+                return (
+                  <div key={categoria} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{categoria}:</span>
+                    <span className="font-semibold">{formatCurrency(montoNum)}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
